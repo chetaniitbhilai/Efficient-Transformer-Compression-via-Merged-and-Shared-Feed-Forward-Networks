@@ -1,0 +1,9 @@
+torch
+transformers
+datasets
+evaluate
+accelerate
+numpy
+scikit-learn
+rouge-score
+jupyter
