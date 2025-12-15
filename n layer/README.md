@@ -1,4 +1,109 @@
 
+
+# Soft Shared FFN with Low-Rank Deltas for GPT-2
+
+This repository implements a **soft parameter sharing method for GPT-2 feed-forward networks (FFNs)** using a **shared base weight plus low-rank, layer-specific residuals**.
+The approach reduces redundancy across neighboring transformer layers **without averaging weights, using MoE routing, or discarding information**.
+
+---
+
+## Core Idea
+
+Transformer FFNs across nearby layers often learn **highly correlated neuron subspaces**.
+Instead of merging or pruning them, we:
+
+1. **Align FFN neurons** across adjacent layers using activation correlation and Hungarian matching.
+2. **Share a common base FFN weight** (`Wc`) across a sliding window of layers.
+3. **Add a learnable low-rank delta** (`A @ B`) per layer to preserve expressivity.
+4. **Fine-tune only the low-rank residuals** with a regularized objective.
+
+Mathematically, each FFN linear layer becomes:
+
+[
+W_l = W_c + A_l B_l \quad\text{with}\quad \text{rank}(A_l B_l) \ll d
+]
+
+---
+
+## Method Overview
+
+**Pipeline**
+
+1. Extract FFN pre-activations (`c_fc`) from GPT-2 in a single forward pass.
+2. Compute neuron alignment using **correlation + Hungarian assignment**.
+3. Search for the best contiguous layer window via **perplexity evaluation**.
+4. Replace FFNs with **shared base + low-rank deltas**.
+5. Fine-tune using:
+
+   * Language modeling loss
+   * Frobenius-norm regularization on low-rank updates
+
+---
+
+## Key Properties
+
+* ✅ No hard parameter tying
+* ✅ No mixture-of-experts routing
+* ✅ No weight averaging
+* ✅ Fully differentiable
+* ✅ Drop-in replacement for GPT-2 FFNs
+
+---
+
+## Configuration
+
+```python
+RANK = 8          # Low-rank dimension
+WINDOW_K = 4     # Number of adjacent layers to share
+LAMBDA = 1e-4    # Low-rank regularization
+MAX_TOKENS = 4000
+```
+
+---
+
+## Results (Qualitative)
+
+* Perplexity remains **close to or better than baseline** after recovery.
+* Model retains generation quality after fine-tuning.
+* Demonstrates **redundancy-aware parameter sharing** in transformer FFNs.
+
+---
+
+## Use Cases
+
+* Model compression research
+* Studying neuron alignment across layers
+* Soft parameter sharing in transformers
+* Low-rank adaptation beyond LoRA-style adapters
+
+---
+
+## Notes
+
+* Designed for **GPT-2**, but extensible to other decoder-only transformers.
+* Alignment is local (sliding window) to avoid global instability.
+* Low-rank deltas ensure **no expressivity collapse**.
+
+---
+
+## Example Generation
+
+```text
+India will become global leader in AI because …
+```
+
+---
+
+## Status
+
+**Research prototype** – intended for experimentation, analysis, and extensions (e.g., LLaMA, ViT, TinyViT).
+
+
+
+
+
+
+
 # **code_n_all — Layer Merging & Structural Compression Experiments on GPT-2**
 
 This notebook implements and evaluates two structural modification strategies for compressing GPT-2 transformer blocks: **layer merging** and **layer deletion–based compression**.
